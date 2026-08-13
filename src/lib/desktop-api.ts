@@ -205,9 +205,15 @@ function uuid(): string {
 // ============================================================
 async function seedAdminUser(db: any) {
   try {
+    // ─── Always run demo data seeding (independent of admin check) ───
+    // seedDemoData has its own idempotency check (skips if products exist).
+    // This ensures demo products/customers/suppliers are added even if the
+    // user was created before seedDemoData was added to the codebase.
+    await seedDemoData(db)
+
     const users = await db.select('SELECT COUNT(*) as count FROM users')
     if (users[0]?.count > 0) {
-      console.log('[Desktop DB] Already seeded, skipping')
+      console.log('[Desktop DB] Admin already exists, skipping admin seed')
       return
     }
 
@@ -298,8 +304,9 @@ async function seedAdminUser(db: any) {
       await db.execute('INSERT OR REPLACE INTO settings (key, value, category) VALUES (?, ?, ?)', [key, value, category])
     }
 
-    // ─── DEMO DATA (offline version — full catalog on first launch) ───
-    await seedDemoData(db, storeId, warehouseId)
+    // Note: seedDemoData() is called at the TOP of this function (before the
+    // admin-exists check) so it runs independently and is idempotent.
+    // It fetches storeId/warehouseId from DB or creates them if missing.
 
     console.log('[Desktop DB] Seeded admin user + default data + demo catalog')
   } catch (e) {
@@ -310,11 +317,46 @@ async function seedAdminUser(db: any) {
 // ============================================================
 // SEED DEMO DATA — products + customers + suppliers (offline)
 // ============================================================
-// Runs once on first launch so the app is immediately usable.
+// Runs on launch so the app is immediately usable.
+// Idempotent: skips if products already exist (checks count > 0).
 // All data is local — no cloud dependency.
+// storeId/warehouseId are optional; if not passed, fetched from DB.
 // ============================================================
-async function seedDemoData(db: any, storeId: string, warehouseId: string): Promise<void> {
+async function seedDemoData(db: any, storeId?: string, warehouseId?: string): Promise<void> {
   try {
+    // ─── IDEMPOTENCY: skip if demo products already exist ───
+    const existing = await db.select('SELECT COUNT(*) as count FROM products')
+    if (existing[0]?.count > 0) {
+      console.log('[Desktop DB] Demo data already exists, skipping')
+      return
+    }
+
+    // ─── FETCH storeId + warehouseId from DB if not passed ───
+    if (!storeId) {
+      const stores = await db.select('SELECT id FROM stores LIMIT 1')
+      storeId = stores[0]?.id
+      if (!storeId) {
+        // No store yet — create a default one
+        storeId = uuid()
+        await db.execute(
+          `INSERT INTO stores (id, name, address, phone, currency, receipt_footer, active, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))`,
+          [storeId, 'لمسة جمال - مستحضرات تجميل', 'شارع التحرير، القاهرة', '0223456789', 'EGP', 'لمسة جمال - جمالكِ يبدأ من هنا ✨']
+        )
+      }
+    }
+    if (!warehouseId) {
+      const whs = await db.select('SELECT id FROM warehouses LIMIT 1')
+      warehouseId = whs[0]?.id
+      if (!warehouseId) {
+        warehouseId = uuid()
+        await db.execute(
+          `INSERT INTO warehouses (id, name, store_id, created_at) VALUES (?, ?, ?, datetime('now'))`,
+          [warehouseId, 'المخزن الرئيسي', storeId]
+        )
+      }
+    }
+
     // ─── 1. CREATE SUPPLIERS (8) ───
     const supplierData = [
       ['شركة الجمال للتوزيع', '01000000001', 'supplies@beauty-dist.com'],
@@ -337,8 +379,27 @@ async function seedDemoData(db: any, storeId: string, warehouseId: string): Prom
       supplierIds.push(sid)
     }
 
-    // ─── 2. FETCH CATEGORY IDS (created above) ───
-    const catRows = await db.select('SELECT id, name_ar FROM categories')
+    // ─── 2. ENSURE CATEGORIES EXIST (create if empty) ───
+    let catRows = await db.select('SELECT id, name_ar FROM categories')
+    if (catRows.length === 0) {
+      // Create default categories (same as seedAdminUser)
+      const categories = [
+        { name: 'Perfumes', nameAr: 'العطور', color: '#e11d48' },
+        { name: 'Makeup', nameAr: 'المكياج', color: '#ec4899' },
+        { name: 'Skincare', nameAr: 'العناية بالبشرة', color: '#8b5cf6' },
+        { name: 'Haircare', nameAr: 'العناية بالشعر', color: '#f59e0b' },
+        { name: 'Body Care', nameAr: 'العناية بالجسم', color: '#10b981' },
+        { name: 'Beauty Tools', nameAr: 'أدوات التجميل', color: '#06b6d4' },
+        { name: 'Offers', nameAr: 'العروض', color: '#ef4444' },
+      ]
+      for (const c of categories) {
+        await db.execute(
+          `INSERT INTO categories (id, name, name_ar, color, created_at) VALUES (?, ?, ?, ?, datetime('now'))`,
+          [uuid(), c.name, c.nameAr, c.color]
+        )
+      }
+      catRows = await db.select('SELECT id, name_ar FROM categories')
+    }
     const catMap: Record<string, string> = {}
     for (const r of catRows) {
       if (r.name_ar) catMap[r.name_ar] = r.id
