@@ -526,8 +526,8 @@ export function ProductsModule() {
                       <TableHead>الباركود</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>الفئة</TableHead>
-                      <TableHead className="text-left">السعر</TableHead>
-                      <TableHead className="text-left">التكلفة</TableHead>
+                      <TableHead className="text-left">سعر البيع</TableHead>
+                      <TableHead className="text-left">سعر الجملة</TableHead>
                       <TableHead className="text-center">المخزون</TableHead>
                       <TableHead className="text-center">الحالة</TableHead>
                       <TableHead className="text-center">إجراءات</TableHead>
@@ -564,7 +564,7 @@ export function ProductsModule() {
                             )}
                           </TableCell>
                           <TableCell className="text-left font-medium pos-number">{formatEGP(p.sellingPrice)}</TableCell>
-                          <TableCell className="text-left text-sm text-muted-foreground pos-number">{formatEGP(p.purchaseCost)}</TableCell>
+                          <TableCell className="text-left text-sm text-muted-foreground pos-number">{formatEGP(p.wholesalePrice)}</TableCell>
                           <TableCell className={`text-center font-bold pos-number ${stockColor}`}>{formatNumber(stock)}</TableCell>
                           <TableCell className="text-center">
                             {p.active ? (

@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 import {
   Search, ShoppingCart, Trash2, Plus, Minus, X, User, Tag, Pause, Play,
   CreditCard, Banknote, Wallet, Percent, Printer, Receipt, ChevronLeft,
-  ScanLine, ShoppingBag, Gift, Keyboard
+  ScanLine, ShoppingBag, Gift, Keyboard, UserPlus, Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ReceiptPrint } from '@/components/pos/receipt-print'
@@ -33,6 +33,7 @@ export function POSModule() {
   const [customerOpen, setCustomerOpen] = useState(false)
   const [discountOpen, setDiscountOpen] = useState(false)
   const [heldOpen, setHeldOpen] = useState(false)
+  const [checkoutCustomerOpen, setCheckoutCustomerOpen] = useState(false)
   const [lastSale, setLastSale] = useState<any>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -563,12 +564,19 @@ export function POSModule() {
             </Button>
           </div>
 
-          {/* Checkout button — prominent gradient, clear "تمام" label */}
+          {/* Checkout button — if no customer, ask for phone first; else go to payment */}
           <Button
             size="lg"
             className="w-full h-16 text-lg font-bold bg-brand-gradient hover:opacity-90 shadow-lg hover:shadow-primary/30 transition-all"
             disabled={cart.items.length === 0}
-            onClick={() => setPaymentOpen(true)}
+            onClick={() => {
+              // If no customer selected → ask for phone (optional)
+              if (!cart.customerId) {
+                setCheckoutCustomerOpen(true)
+              } else {
+                setPaymentOpen(true)
+              }
+            }}
           >
             <CreditCard className="w-6 h-6 ml-2" />
             تمام — دفع {formatEGP(total)}
@@ -576,6 +584,14 @@ export function POSModule() {
           </Button>
         </div>
       </div>
+
+      {/* Checkout Customer Dialog — ask for phone before payment */}
+      <CheckoutCustomerDialog
+        open={checkoutCustomerOpen}
+        onOpenChange={setCheckoutCustomerOpen}
+        onSkip={() => { setCheckoutCustomerOpen(false); setPaymentOpen(true) }}
+        onSelected={() => { setCheckoutCustomerOpen(false); setPaymentOpen(true) }}
+      />
 
       {/* Payment Dialog */}
       <PaymentDialog
@@ -1137,6 +1153,190 @@ function HeldSalesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
             )}
           </div>
         </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ============================================================
+// CHECKOUT CUSTOMER DIALOG — streamlined phone entry at checkout
+// ============================================================
+// Flow:
+//   1. User clicks "تمام — دفع" with no customer selected
+//   2. This dialog asks: "هل تريد إضافة عميل؟"
+//   3. User enters phone number:
+//      - If found → select customer, proceed to payment (onSelected)
+//      - If not found → ask for name → create customer → proceed (onSelected)
+//   4. Or user clicks "تخطي" → proceed without customer (onSkip)
+// ============================================================
+function CheckoutCustomerDialog({ open, onOpenChange, onSkip, onSelected }: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onSkip: () => void
+  onSelected: () => void
+}) {
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
+  const [foundCustomer, setFoundCustomer] = useState<any>(null)
+  const [searching, setSearching] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const cart = useCartStore()
+
+  useEffect(() => {
+    if (open) {
+      setPhone('')
+      setName('')
+      setFoundCustomer(null)
+      setSearching(false)
+      setCreating(false)
+    }
+  }, [open])
+
+  // Look up customer by phone
+  const handleLookup = async () => {
+    const p = phone.trim()
+    if (!p || p.length < 6) {
+      toast.error('أدخل رقم هاتف صحيح')
+      return
+    }
+    setSearching(true)
+    try {
+      const res = await apiFetch(`/customers?search=${encodeURIComponent(p)}&limit=5`)
+      const customers = Array.isArray(res) ? res : (res?.data || [])
+      const exact = customers.find((c: any) => c.phone === p)
+      if (exact) {
+        // Found — select and proceed
+        cart.setCustomer(exact.id, exact.name, exact.phone, exact.loyaltyPoints || 0)
+        toast.success(`تم اختيار العميل: ${exact.name}`)
+        onSelected()
+      } else {
+        // Not found — ask for name to create new
+        setFoundCustomer({ notFound: true })
+        toast.info('العميل غير موجود — أدخل الاسم لإنشاء عميل جديد')
+      }
+    } catch {
+      toast.error('فشل البحث عن العميل')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  // Create new customer then proceed
+  const handleCreate = async () => {
+    const n = name.trim()
+    if (!n) {
+      toast.error('أدخل اسم العميل')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await apiFetch('/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: n, phone: phone.trim(), tier: 'BRONZE' }),
+      })
+      if (res?.id) {
+        cart.setCustomer(res.id, res.name, res.phone, 0)
+        toast.success(`تم إنشاء العميل: ${res.name}`)
+        onSelected()
+      }
+    } catch {
+      toast.error('فشل إنشاء العميل')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5 text-primary" />
+            إضافة عميل للفاتورة
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            اختياري — يمكنك تخطي هذه الخطوة وإتمام البيع بدون عميل
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {!foundCustomer ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="checkout-phone">رقم هاتف العميل</Label>
+                <Input
+                  id="checkout-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                  placeholder="01xxxxxxxxx"
+                  className="pos-number text-lg"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 h-11"
+                  onClick={handleLookup}
+                  disabled={searching || !phone.trim()}
+                >
+                  {searching ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Search className="w-4 h-4 ml-2" />}
+                  بحث
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11"
+                  onClick={onSkip}
+                >
+                  تخطي — بيع بدون عميل
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/30 text-sm">
+                <p className="font-medium text-amber-700">رقم الهاتف غير مسجل</p>
+                <p className="text-xs text-muted-foreground mt-1">أدخل اسم العميل لإنشاء حساب جديد، أو تخطى</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="checkout-name">اسم العميل</Label>
+                <Input
+                  id="checkout-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  placeholder="اسم العميل الجديد"
+                  className="text-lg"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 h-11"
+                  onClick={handleCreate}
+                  disabled={creating || !name.trim()}
+                >
+                  {creating ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <UserPlus className="w-4 h-4 ml-2" />}
+                  إنشاء وإضافة
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11"
+                  onClick={() => { setFoundCustomer(null); setName('') }}
+                >
+                  رجوع
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onSkip} className="w-full">
+            متابعة بدون عميل
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

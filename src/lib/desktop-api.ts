@@ -475,8 +475,8 @@ async function seedDemoData(db: any, storeId?: string, warehouseId?: string): Pr
       await db.execute(
         `INSERT INTO products (id, name, name_ar, sku, barcode, barcodes, category_id, supplier_id, store_id,
            purchase_cost, selling_price, wholesale_price, tax_rate, min_stock, reorder_level,
-           track_stock, allow_negative_stock, avg_cost, active, current_stock, sync_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, ?, ?, 14, 5, 10, 1, 0, ?, 1, ?, 'synced', datetime('now'), datetime('now'))`,
+           track_stock, allow_negative_stock, avg_cost, active, current_stock, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, '[]', ?, ?, ?, ?, ?, ?, 14, 5, 10, 1, 0, ?, 1, ?, datetime('now'), datetime('now'))`,
         [pid, name, nameAr, sku, barcode, categoryId, supplierId, storeId,
          cost, price, Math.round(cost * 1.15 * 100) / 100, cost, stock]
       )
@@ -1131,10 +1131,10 @@ async function handleCreateSale(db: any, body: any): Promise<any> {
   // If any statement fails, the entire batch rolls back.
   const stmts: string[] = []
 
-  // 1. Sale header
+  // 1. Sale header — ALL 20 values in ONE sqlVals tuple (no extra parens)
   stmts.push(
     `INSERT INTO sales (id, client_txn_id, invoice_number, customer_id, user_id, items_json, subtotal, discount_amount, tax_amount, total, paid_amount, change_amount, payment_method, loyalty_earned, loyalty_redeemed, note, status, sync_status, created_at, updated_at)
-     VALUES (${sqlVals([saleId, clientTxnId, invoiceNumber, customerId || null, userId, JSON.stringify(itemsData), subtotal, discountAmount || 0, taxAmount || 0, finalTotal, paid, change, paymentMethod || 'CASH', loyaltyEarned, loyaltyRedeem || 0, note || ''])}, 'COMPLETED', 'pending', ${sqlEsc(now)}, datetime('now'))`
+     VALUES ${sqlVals([saleId, clientTxnId, invoiceNumber, customerId || null, userId, JSON.stringify(itemsData), subtotal, discountAmount || 0, taxAmount || 0, finalTotal, paid, change, paymentMethod || 'CASH', loyaltyEarned, loyaltyRedeem || 0, note || '', 'COMPLETED', 'pending', now, now])}`
   )
 
   // 2. Sale items + stock decrement + stock movements
@@ -1269,7 +1269,7 @@ async function handleCreateExpense(db: any, body: any): Promise<any> {
   // Build atomic SQL batch
   const stmts: string[] = [
     `INSERT INTO expenses (id, client_txn_id, category_id, user_id, amount, payment_method, note, date, sync_status, created_at, updated_at)
-     VALUES ${sqlVals([id, clientTxnId, categoryId || null, userId, amount, method, note || '', now])}, 'pending', datetime('now'), datetime('now')`,
+     VALUES ${sqlVals([id, clientTxnId, categoryId || null, userId, amount, method, note || '', now, 'pending', now, now])}`,
   ]
 
   if (cashSessionId) {
@@ -1281,7 +1281,7 @@ async function handleCreateExpense(db: any, body: any): Promise<any> {
 
   stmts.push(
     `INSERT INTO audit_logs (id, user_id, action, entity, entity_id, after, created_at)
-     VALUES ${sqlVals([uuid(), userId, 'CREATE_EXPENSE', 'Expense', id, JSON.stringify({ amount, method, categoryId, note })])}, datetime('now')`
+     VALUES ${sqlVals([uuid(), userId, 'CREATE_EXPENSE', 'Expense', id, JSON.stringify({ amount, method, categoryId, note }), now])}`
   )
 
   stmts.push(
@@ -1315,7 +1315,7 @@ async function handleCashOpen(db: any, body: any): Promise<any> {
     "UPDATE cash_sessions SET status = 'CLOSED', closed_at = datetime('now'), updated_at = datetime('now') WHERE status = 'OPEN'",
     // 2. Open new session
     `INSERT INTO cash_sessions (id, user_id, opening_balance, status, opened_at, updated_at)
-     VALUES ${sqlVals([id, userId, openingBalance || 0])}, 'OPEN', datetime('now'), datetime('now')`,
+     VALUES ${sqlVals([id, userId, openingBalance || 0, 'OPEN', now, now])}`,
     // 3. Opening movement
     `INSERT INTO cash_movements (id, session_id, type, amount, note, ref_type, ref_id, sync_status, created_at)
      VALUES ${sqlVals([uuid(), id, openingBalance || 0, 'افتتاح الكاش', 'CashSession', id, 'pending', now])}`,
@@ -1366,7 +1366,7 @@ async function handleCashClose(db: any, body: any): Promise<any> {
     `INSERT INTO cash_movements (id, session_id, type, amount, note, ref_type, ref_id, sync_status, created_at)
      VALUES ${sqlVals([uuid(), sessionId, actualCash || 0, 'إغلاق الكاش', 'CashSession', sessionId, 'pending', now])}`,
     `INSERT INTO audit_logs (id, user_id, action, entity, entity_id, after, created_at)
-     VALUES ${sqlVals([uuid(), userId || null, 'CLOSE_CASH', 'CashSession', sessionId, JSON.stringify({ expected, actualCash, difference })])}, datetime('now')`,
+     VALUES ${sqlVals([uuid(), userId || null, 'CLOSE_CASH', 'CashSession', sessionId, JSON.stringify({ expected, actualCash, difference }), now])}`,
   ]
 
   try {
@@ -2313,18 +2313,11 @@ let desktopSyncing = false
 
 /** Push then pull. Safe to call repeatedly — no-ops when offline or not desktop. */
 export async function runDesktopSync(): Promise<{ pushed: number; pulled: number }> {
-  if (!isDesktop()) return { pushed: 0, pulled: 0 }
-  if (typeof navigator !== 'undefined' && !navigator.onLine) return { pushed: 0, pulled: 0 }
-  if (desktopSyncing) return { pushed: 0, pulled: 0 }
-
-  desktopSyncing = true
-  try {
-    const { pushed } = await pushPendingToServer()
-    const { pulled } = await pullFromServer()
-    return { pushed, pulled }
-  } finally {
-    desktopSyncing = false
-  }
+  // OFFLINE VERSION: sync is completely disabled.
+  // All data is local SQLite only — no cloud sync attempts.
+  // This prevents FK constraint errors from pulling stock_levels
+  // before products exist, and avoids network errors.
+  return { pushed: 0, pulled: 0 }
 }
 
 let desktopSyncInterval: ReturnType<typeof setInterval> | null = null
