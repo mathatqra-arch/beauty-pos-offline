@@ -1126,70 +1126,74 @@ async function handleCreateSale(db: any, body: any): Promise<any> {
     cashSessionId = sessions[0]?.id || null
   }
 
-  // ─── BUILD ATOMIC SQL (single execute() call) ───
-  // All statements concatenated with semicolons → SQLite implicit transaction.
-  // If any statement fails, the entire batch rolls back.
-  const stmts: string[] = []
-
-  // 1. Sale header — ALL 20 values in ONE sqlVals tuple (no extra parens)
-  stmts.push(
-    `INSERT INTO sales (id, client_txn_id, invoice_number, customer_id, user_id, items_json, subtotal, discount_amount, tax_amount, total, paid_amount, change_amount, payment_method, loyalty_earned, loyalty_redeemed, note, status, sync_status, created_at, updated_at)
-     VALUES ${sqlVals([saleId, clientTxnId, invoiceNumber, customerId || null, userId, JSON.stringify(itemsData), subtotal, discountAmount || 0, taxAmount || 0, finalTotal, paid, change, paymentMethod || 'CASH', loyaltyEarned, loyaltyRedeem || 0, note || '', 'COMPLETED', 'pending', now, now])}`
-  )
-
-  // 2. Sale items + stock decrement + stock movements
-  for (const item of itemsData) {
-    stmts.push(
-      `INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, total, cost_at_sale)
-       VALUES ${sqlVals([uuid(), saleId, item.productId, item.quantity, item.unitPrice, item.total, item.costAtSale])}`
-    )
-    stmts.push(
-      `UPDATE products SET current_stock = current_stock - ${sqlEsc(item.quantity)}, updated_at = datetime('now') WHERE id = ${sqlEsc(item.productId)}`
-    )
-    stmts.push(
-      `INSERT INTO stock_movements (id, client_txn_id, product_id, type, quantity, ref_type, ref_id, note, sync_status, created_at)
-       VALUES ${sqlVals([uuid(), `${clientTxnId}:${item.productId}:STOCK`, item.productId, -item.quantity, 'Sale', saleId, invoiceNumber, 'pending', now])}`
-    )
+  // ─── GUARD: userId must exist (sales.user_id is NOT NULL FK) ───
+  if (!userId) {
+    throw new Error('معرف المستخدم مفقود — تأكد من تسجيل الدخول')
   }
 
-  // 3. Payment record
-  stmts.push(
-    `INSERT INTO sale_payments (id, sale_id, method, amount, created_at, sync_status)
-     VALUES ${sqlVals([uuid(), saleId, paymentMethod || 'CASH', paid, now, 'pending'])}`
-  )
-
-  // 4. Loyalty earn (if applicable)
-  if (customerId && loyaltyEarned > 0) {
-    stmts.push(
-      `INSERT INTO loyalty_accounts (id, customer_id, points, total_earned, total_redeemed, tier, updated_at)
-       VALUES ${sqlVals([uuid(), customerId, loyaltyEarned, loyaltyEarned, 0, 'BRONZE', now])}
-       ON CONFLICT(customer_id) DO UPDATE SET points = points + ${sqlEsc(loyaltyEarned)}, total_earned = total_earned + ${sqlEsc(loyaltyEarned)}, updated_at = ${sqlEsc(now)}`
-    )
-    stmts.push(
-      `INSERT INTO loyalty_transactions (id, client_txn_id, customer_id, type, points, ref_type, ref_id, note, sync_status, created_at)
-       VALUES ${sqlVals([uuid(), `${clientTxnId}:LOYALTY`, customerId, loyaltyEarned, 'Sale', saleId, `نقاط من ${invoiceNumber}`, 'pending', now])}`
-    )
-  }
-
-  // 5. Cash movement (if CASH + open session)
-  if (cashSessionId) {
-    stmts.push(
-      `INSERT INTO cash_movements (id, client_txn_id, session_id, type, amount, note, ref_type, ref_id, sync_status, created_at)
-       VALUES ${sqlVals([uuid(), `${clientTxnId}:CASH`, cashSessionId, finalTotal, invoiceNumber, 'Sale', saleId, 'pending', now])}`
-    )
-  }
-
-  // 6. Sync queue entry
-  stmts.push(
-    `INSERT INTO sync_queue (entity_type, entity_id, client_txn_id, operation, payload, status, created_at)
-     VALUES ${sqlVals(['Sale', saleId, clientTxnId, 'CREATE', JSON.stringify({ ...body, clientTxnId, invoiceNumber }), 'PENDING', now])}`
-  )
-
-  // ─── EXECUTE ATOMICALLY ───
-  // Single execute() with all statements → implicit SQLite transaction.
-  // No BEGIN/COMMIT needed — SQLite wraps the batch atomically.
+  // ─── EXECUTE STATEMENTS INDIVIDUALLY ───
+  // tauri-plugin-sql does NOT reliably execute multi-statement SQL strings.
+  // Each db.execute() auto-commits, so each INSERT is visible to the next.
+  // We use parameterized queries (?) for safety + reliability.
   try {
-    await db.execute(stmts.join(';\n') + ';')
+    // 1. Sale header
+    await db.execute(
+      `INSERT INTO sales (id, client_txn_id, invoice_number, customer_id, user_id, items_json, subtotal, discount_amount, tax_amount, total, paid_amount, change_amount, payment_method, loyalty_earned, loyalty_redeemed, note, status, sync_status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', 'pending', ?, ?)`,
+      [saleId, clientTxnId, invoiceNumber, customerId || null, userId, JSON.stringify(itemsData),
+       subtotal, discountAmount || 0, taxAmount || 0, finalTotal, paid, change,
+       paymentMethod || 'CASH', loyaltyEarned, loyaltyRedeem || 0, note || '', now, now]
+    )
+
+    // 2. Sale items + stock decrement + stock movements
+    for (const item of itemsData) {
+      await db.execute(
+        `INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, total, cost_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [uuid(), saleId, item.productId, item.quantity, item.unitPrice, item.total, item.costAtSale]
+      )
+      await db.execute(
+        `UPDATE products SET current_stock = current_stock - ?, updated_at = ? WHERE id = ?`,
+        [item.quantity, now, item.productId]
+      )
+      await db.execute(
+        `INSERT INTO stock_movements (id, client_txn_id, product_id, type, quantity, ref_type, ref_id, note, sync_status, created_at) VALUES (?, ?, ?, 'SALE', ?, 'Sale', ?, ?, 'pending', ?)`,
+        [uuid(), `${clientTxnId}:${item.productId}:STOCK`, item.productId, -item.quantity, saleId, invoiceNumber, now]
+      )
+    }
+
+    // 3. Payment record
+    await db.execute(
+      `INSERT INTO sale_payments (id, sale_id, method, amount, created_at, sync_status) VALUES (?, ?, ?, ?, ?, 'pending')`,
+      [uuid(), saleId, paymentMethod || 'CASH', paid, now]
+    )
+
+    // 4. Loyalty earn (if applicable)
+    if (customerId && loyaltyEarned > 0) {
+      await db.execute(
+        `INSERT INTO loyalty_accounts (id, customer_id, points, total_earned, total_redeemed, tier, updated_at)
+         VALUES (?, ?, ?, ?, 0, 'BRONZE', ?)
+         ON CONFLICT(customer_id) DO UPDATE SET points = points + ?, total_earned = total_earned + ?, updated_at = ?`,
+        [uuid(), customerId, loyaltyEarned, loyaltyEarned, now, loyaltyEarned, loyaltyEarned, now]
+      )
+      await db.execute(
+        `INSERT INTO loyalty_transactions (id, client_txn_id, customer_id, type, points, ref_type, ref_id, note, sync_status, created_at) VALUES (?, ?, ?, 'EARN', ?, 'Sale', ?, ?, 'pending', ?)`,
+        [uuid(), `${clientTxnId}:LOYALTY`, customerId, loyaltyEarned, saleId, `نقاط من ${invoiceNumber}`, now]
+      )
+    }
+
+    // 5. Cash movement (if CASH + open session)
+    if (cashSessionId) {
+      await db.execute(
+        `INSERT INTO cash_movements (id, client_txn_id, session_id, type, amount, note, ref_type, ref_id, sync_status, created_at) VALUES (?, ?, ?, 'SALE', ?, ?, 'Sale', ?, 'pending', ?)`,
+        [uuid(), `${clientTxnId}:CASH`, cashSessionId, finalTotal, invoiceNumber, saleId, now]
+      )
+    }
+
+    // 6. Sync queue entry
+    await db.execute(
+      `INSERT INTO sync_queue (entity_type, entity_id, client_txn_id, operation, payload, status, created_at) VALUES ('Sale', ?, ?, 'CREATE', ?, 'PENDING', ?)`,
+      [saleId, clientTxnId, JSON.stringify({ ...body, clientTxnId, invoiceNumber }), now]
+    )
   } catch (e: any) {
     throw new Error(`فشل إنشاء البيع: ${sqlErrorMsg(e)}`)
   }
