@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Sparkles, Loader2, Lock, User } from 'lucide-react'
+import { Sparkles, Loader2, Lock, User, Hexagon } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function LoginScreen() {
@@ -53,11 +53,11 @@ export function LoginScreen() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/20 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-lg">
-            <Sparkles className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-nexflow-accent-gradient text-white mb-4 shadow-lg">
+            <Hexagon className="w-8 h-8" strokeWidth={2.5} />
           </div>
-          <h1 className="text-3xl font-bold">لمسة جمال</h1>
-          <p className="text-muted-foreground mt-2">نظام إدارة مستحضرات التجميل</p>
+          <h1 className="text-3xl font-bold tracking-tight">NexFlow System</h1>
+          <p className="text-muted-foreground mt-2">نظام إدارة الأعمال المتكامل</p>
         </div>
 
         <Card className="shadow-xl">

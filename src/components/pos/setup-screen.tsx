@@ -153,7 +153,7 @@ export function SetupScreen({ onComplete }: { onComplete: () => void }) {
   const [adminName, setAdminName] = useState('')
   const [adminUsername, setAdminUsername] = useState('admin')
   const [adminPassword, setAdminPassword] = useState('')
-  const [storeName, setStoreName] = useState('لمسة جمال - مستحضرات تجميل')
+  const [storeName, setStoreName] = useState('NexFlow System - المتجر الرئيسي')
 
   const checkDbStatus = async () => {
     setPhase('checking')

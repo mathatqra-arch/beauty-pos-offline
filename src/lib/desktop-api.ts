@@ -233,7 +233,7 @@ async function seedAdminUser(db: any) {
     await db.execute(
       `INSERT INTO stores (id, name, address, phone, currency, receipt_footer, active, created_at)
        VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))`,
-      [storeId, 'لمسة جمال - مستحضرات تجميل', 'شارع التحرير، القاهرة', '0223456789', 'EGP', 'لمسة جمال - جمالكِ يبدأ من هنا ✨']
+      [storeId, 'NexFlow System - المتجر الرئيسي', 'شارع التحرير، القاهرة', '0223456789', 'EGP', 'NexFlow System — شكراً لتعاملكم معنا']
     )
 
     const warehouseId = uuid()
@@ -380,17 +380,31 @@ async function seedDemoData(db: any, storeId?: string, warehouseId?: string): Pr
     }
 
     // ─── 2. ENSURE CATEGORIES EXIST (create if empty) ───
+    // NexFlow organized categories:
+    //   • منتجات أساسية (core products)
+    //   • قيمة جانبية (side values — services, packaging, extras)
+    //   • محاسبية (accounting — fees, commissions)
     let catRows = await db.select('SELECT id, name_ar FROM categories')
     if (catRows.length === 0) {
-      // Create default categories (same as seedAdminUser)
       const categories = [
+        // ── منتجات أساسية (Core Products) ──
         { name: 'Perfumes', nameAr: 'العطور', color: '#e11d48' },
         { name: 'Makeup', nameAr: 'المكياج', color: '#ec4899' },
         { name: 'Skincare', nameAr: 'العناية بالبشرة', color: '#8b5cf6' },
         { name: 'Haircare', nameAr: 'العناية بالشعر', color: '#f59e0b' },
         { name: 'Body Care', nameAr: 'العناية بالجسم', color: '#10b981' },
         { name: 'Beauty Tools', nameAr: 'أدوات التجميل', color: '#06b6d4' },
-        { name: 'Offers', nameAr: 'العروض', color: '#ef4444' },
+        { name: 'Offers', nameAr: 'العروض والخصومات', color: '#ef4444' },
+        // ── قيمة جانبية (Side Values — services & extras) ──
+        { name: 'Packaging', nameAr: 'تغليف هدايا', color: '#a855f7' },
+        { name: 'Services', nameAr: 'خدمات', color: '#3b82f6' },
+        { name: 'Delivery', nameAr: 'توصيل', color: '#22c55e' },
+        { name: 'Gift Cards', nameAr: 'كروت هدايا', color: '#eab308' },
+        // ── محاسبية (Accounting categories) ──
+        { name: 'Commission', nameAr: 'عمولات', color: '#6366f1' },
+        { name: 'Fees', nameAr: 'رسوم', color: '#0ea5e9' },
+        { name: 'Returns', nameAr: 'مرتجعات', color: '#f43f5e' },
+        { name: 'Discounts', nameAr: 'خصومات', color: '#f97316' },
       ]
       for (const c of categories) {
         await db.execute(

@@ -4,14 +4,22 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   لمسة جمال — Beauty POS — Professional Design System
+   NexFlow System — Professional Design System
    ============================================================
-   Brand identity (from reference analysis):
-   • Primary:   Royal Purple #7C3AED  — logo, main CTAs, active states
-   • Secondary: Teal/Cyan   #06B6D4  — gradients, success, hover
-   • Accent:    Pink        #EC4899  — discounts, featured, loyalty
-   • Dark:      Deep Navy   #0F172A  — sidebar, dark mode bg
-   • Gold:      #F59E0B     — VIP, premium accents
+   Identity (from reference analysis):
+   • Background:  #F4F7FB (light blue-gray, clean & spacious)
+   • Cards:       #FFFFFF (pure white, layered depth)
+   • Primary:     #18181B (deep black — text, sidebar, icons)
+   • Accent:      #3B82F6 (sky blue — interactive, active, growth)
+   • Pastel KPI tints:
+       - Purple: #F3E8FF bg / #A855F7 text
+       - Green:  #DCFCE7 bg / #22C55E text
+       - Yellow: #FEF9C3 bg / #EAB308 text
+       - Blue:   #DBEAFE bg / #3B82F6 text
+       - Pink:   #FCE7F3 bg / #EC4899 text
+       - Red:    #FEE2E2 bg / #EF4444 text
+   • Sidebar: dark #18181B with outline icons, white active indicator
+   • Radius: 16-24px (soft, modern, friendly)
    Fonts: Cairo (headlines) + Tajawal (body) + JetBrains Mono (numbers)
    ============================================================ */
 
@@ -51,103 +59,112 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Brand-specific tokens */
-  --color-brand-purple: var(--brand-purple);
-  --color-brand-teal: var(--brand-teal);
-  --color-brand-pink: var(--brand-pink);
-  --color-brand-gold: var(--brand-gold);
+  /* NexFlow brand tokens */
+  --color-nexflow-bg: var(--nexflow-bg);
+  --color-nexflow-accent: var(--nexflow-accent);
+  --color-nexflow-dark: var(--nexflow-dark);
+  --color-kpi-purple: var(--kpi-purple);
+  --color-kpi-green: var(--kpi-green);
+  --color-kpi-yellow: var(--kpi-yellow);
+  --color-kpi-blue: var(--kpi-blue);
+  --color-kpi-pink: var(--kpi-pink);
+  --color-kpi-red: var(--kpi-red);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
 }
 
 :root {
-  --radius: 0.75rem;  /* slightly larger for modern feel */
-  --background: oklch(0.99 0.003 280);
-  --foreground: oklch(0.18 0.02 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 265);
+  --radius: 0.875rem;  /* 14px — soft modern radius */
+  /* NexFlow light mode */
+  --background: oklch(0.97 0.005 240);     /* #F4F7FB */
+  --foreground: oklch(0.18 0.005 260);     /* #18181B */
+  --card: oklch(1 0 0);                     /* #FFFFFF */
+  --card-foreground: oklch(0.18 0.005 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 265);
+  --popover-foreground: oklch(0.18 0.005 260);
 
-  /* Primary: Royal Purple #7C3AED */
-  --primary: oklch(0.54 0.23 295);
-  --primary-foreground: oklch(0.99 0 0);
+  /* Primary: deep black for text/buttons */
+  --primary: oklch(0.18 0.005 260);        /* #18181B */
+  --primary-foreground: oklch(0.99 0 0);   /* white */
 
-  /* Secondary: soft purple tint */
-  --secondary: oklch(0.95 0.02 295);
-  --secondary-foreground: oklch(0.3 0.08 295);
+  /* Accent: sky blue for interactive states */
+  --accent: oklch(0.62 0.16 255);          /* #3B82F6 */
+  --accent-foreground: oklch(0.99 0 0);
 
-  --muted: oklch(0.96 0.005 280);
-  --muted-foreground: oklch(0.52 0.015 265);
+  --secondary: oklch(0.96 0.005 240);      /* #F4F7FB tint */
+  --secondary-foreground: oklch(0.25 0.005 260);
+  --muted: oklch(0.95 0.005 240);
+  --muted-foreground: oklch(0.52 0.01 260); /* #6B7280 */
+  --destructive: oklch(0.6 0.22 25);       /* #EF4444 */
+  --border: oklch(0.92 0.005 240);
+  --input: oklch(0.94 0.005 240);
+  --ring: oklch(0.62 0.16 255);            /* accent blue */
+  --chart-1: oklch(0.62 0.16 255);          /* blue */
+  --chart-2: oklch(0.65 0.18 145);          /* green */
+  --chart-3: oklch(0.58 0.2 300);           /* purple */
+  --chart-4: oklch(0.75 0.16 80);           /* yellow */
+  --chart-5: oklch(0.66 0.2 350);           /* pink */
 
-  /* Accent: Pink #EC4899 */
-  --accent: oklch(0.93 0.03 350);
-  --accent-foreground: oklch(0.4 0.18 350);
-
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.91 0.008 280);
-  --input: oklch(0.93 0.008 280);
-  --ring: oklch(0.54 0.23 295);
-
-  /* Brand tokens */
-  --brand-purple: oklch(0.54 0.23 295);   /* #7C3AED */
-  --brand-teal: oklch(0.72 0.13 200);     /* #06B6D4 */
-  --brand-pink: oklch(0.66 0.23 350);     /* #EC4899 */
-  --brand-gold: oklch(0.76 0.15 75);      /* #F59E0B */
-
-  /* Chart colors — coordinated with brand */
-  --chart-1: oklch(0.54 0.23 295);  /* purple */
-  --chart-2: oklch(0.72 0.13 200);  /* teal */
-  --chart-3: oklch(0.66 0.23 350);  /* pink */
-  --chart-4: oklch(0.76 0.15 75);   /* gold */
-  --chart-5: oklch(0.6 0.2 150);    /* emerald */
-
-  /* Sidebar: deep navy with purple tint */
-  --sidebar: oklch(0.2 0.03 265);
-  --sidebar-foreground: oklch(0.95 0.01 280);
-  --sidebar-primary: oklch(0.6 0.23 295);
+  /* Sidebar: dark #18181B */
+  --sidebar: oklch(0.18 0.005 260);        /* #18181B */
+  --sidebar-foreground: oklch(0.95 0.005 240);
+  --sidebar-primary: oklch(0.62 0.16 255); /* accent blue for active */
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.27 0.04 270);
-  --sidebar-accent-foreground: oklch(0.97 0.01 280);
+  --sidebar-accent: oklch(0.25 0.005 260); /* hover bg */
+  --sidebar-accent-foreground: oklch(0.97 0.005 240);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.6 0.23 295);
+  --sidebar-ring: oklch(0.62 0.16 255);
+
+  /* NexFlow brand tokens */
+  --nexflow-bg: oklch(0.97 0.005 240);     /* #F4F7FB */
+  --nexflow-accent: oklch(0.62 0.16 255);  /* #3B82F6 */
+  --nexflow-dark: oklch(0.18 0.005 260);   /* #18181B */
+
+  /* KPI pastel tints (bg / text pairs) */
+  --kpi-purple: oklch(0.65 0.2 300);       /* #A855F7 */
+  --kpi-green: oklch(0.65 0.18 145);       /* #22C55E */
+  --kpi-yellow: oklch(0.75 0.16 80);       /* #EAB308 */
+  --kpi-blue: oklch(0.62 0.16 255);        /* #3B82F6 */
+  --kpi-pink: oklch(0.66 0.2 350);         /* #EC4899 */
+  --kpi-red: oklch(0.6 0.22 25);           /* #EF4444 */
 }
 
 .dark {
-  --background: oklch(0.17 0.02 265);
-  --foreground: oklch(0.97 0.005 280);
-  --card: oklch(0.22 0.02 265);
-  --card-foreground: oklch(0.97 0.005 280);
-  --popover: oklch(0.22 0.02 265);
-  --popover-foreground: oklch(0.97 0.005 280);
-  --primary: oklch(0.65 0.23 295);
-  --primary-foreground: oklch(0.17 0.02 265);
-  --secondary: oklch(0.28 0.03 270);
-  --secondary-foreground: oklch(0.97 0.005 280);
-  --muted: oklch(0.27 0.02 265);
-  --muted-foreground: oklch(0.7 0.01 280);
-  --accent: oklch(0.33 0.06 350);
-  --accent-foreground: oklch(0.95 0.02 350);
+  --background: oklch(0.16 0.005 260);
+  --foreground: oklch(0.97 0.005 240);
+  --card: oklch(0.21 0.005 260);
+  --card-foreground: oklch(0.97 0.005 240);
+  --popover: oklch(0.21 0.005 260);
+  --popover-foreground: oklch(0.97 0.005 240);
+  --primary: oklch(0.97 0.005 240);
+  --primary-foreground: oklch(0.16 0.005 260);
+  --secondary: oklch(0.27 0.005 260);
+  --secondary-foreground: oklch(0.97 0.005 240);
+  --muted: oklch(0.27 0.005 260);
+  --muted-foreground: oklch(0.7 0.005 240);
+  --accent: oklch(0.62 0.16 255);
+  --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.7 0.19 22);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.65 0.23 295);
-  --chart-1: oklch(0.65 0.23 295);
-  --chart-2: oklch(0.72 0.13 200);
-  --chart-3: oklch(0.66 0.23 350);
-  --chart-4: oklch(0.76 0.15 75);
-  --chart-5: oklch(0.6 0.2 150);
-  --sidebar: oklch(0.15 0.02 265);
-  --sidebar-foreground: oklch(0.97 0.005 280);
-  --sidebar-primary: oklch(0.65 0.23 295);
-  --sidebar-primary-foreground: oklch(0.17 0.02 265);
-  --sidebar-accent: oklch(0.25 0.03 270);
-  --sidebar-accent-foreground: oklch(0.97 0.01 280);
+  --ring: oklch(0.62 0.16 255);
+  --chart-1: oklch(0.62 0.16 255);
+  --chart-2: oklch(0.65 0.18 145);
+  --chart-3: oklch(0.58 0.2 300);
+  --chart-4: oklch(0.75 0.16 80);
+  --chart-5: oklch(0.66 0.2 350);
+  --sidebar: oklch(0.13 0.005 260);
+  --sidebar-foreground: oklch(0.95 0.005 240);
+  --sidebar-primary: oklch(0.62 0.16 255);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.22 0.005 260);
+  --sidebar-accent-foreground: oklch(0.97 0.005 240);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.65 0.23 295);
+  --sidebar-ring: oklch(0.62 0.16 255);
 }
 
 @layer base {
@@ -157,11 +174,13 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-cairo), var(--font-tajawal), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 /* ============================================================
-   CUSTOM SCROLLBAR — slim, branded
+   CUSTOM SCROLLBAR — slim, subtle
    ============================================================ */
 ::-webkit-scrollbar {
   width: 6px;
@@ -171,48 +190,80 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.8 0.02 295);
+  background: oklch(0.8 0.005 240);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-purple);
+  background: var(--nexflow-accent);
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0.03 270);
+  background: oklch(0.35 0.005 260);
 }
 
 /* ============================================================
-   POS NUMBER — tabular nums for currency alignment
+   NEXFLOW CARD — soft shadow, large radius
+   ============================================================ */
+.nexflow-card {
+  background: var(--card);
+  border-radius: var(--radius-2xl);  /* 22px */
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.03),
+    0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  border: 1px solid oklch(0.94 0.005 240 / 0.5);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.nexflow-card:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   KPI BADGE — pastel tint backgrounds
+   ============================================================ */
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-xl);
+  flex-shrink: 0;
+}
+.kpi-badge-purple { background: oklch(0.95 0.03 300); color: var(--kpi-purple); }
+.kpi-badge-green  { background: oklch(0.95 0.03 145); color: var(--kpi-green); }
+.kpi-badge-yellow { background: oklch(0.96 0.03 80);  color: var(--kpi-yellow); }
+.kpi-badge-blue   { background: oklch(0.95 0.03 255); color: var(--kpi-blue); }
+.kpi-badge-pink   { background: oklch(0.95 0.03 350); color: var(--kpi-pink); }
+.kpi-badge-red    { background: oklch(0.95 0.03 25);  color: var(--kpi-red); }
+
+/* ============================================================
+   POS NUMBER — tabular nums for currency
    ============================================================ */
 .pos-number {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   font-family: var(--font-jetbrains-mono), var(--font-cairo), monospace;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================================
-   RECEIPT PRINT — 80mm thermal printer isolation
+   RECEIPT PRINT — 80mm thermal
    ============================================================ */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .receipt-print, .receipt-print * {
-    visibility: visible;
-  }
+  body * { visibility: hidden; }
+  .receipt-print, .receipt-print * { visibility: visible; }
   .receipt-print {
     position: absolute;
     right: 0;
     top: 0;
     width: 80mm;
   }
-  .no-print {
-    display: none !important;
-  }
+  .no-print { display: none !important; }
 }
 
 /* ============================================================
-   PRODUCT CARD — hover lift with brand shadow
+   PRODUCT CARD — hover lift
    ============================================================ */
 .product-card {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -220,34 +271,28 @@
 }
 .product-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px -8px oklch(0.54 0.23 295 / 0.25);
-  border-color: var(--brand-purple);
-}
-.product-card:active {
-  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px rgba(59, 130, 246, 0.2);
+  border-color: var(--nexflow-accent);
 }
 
 /* ============================================================
-   GRADIENT BACKGROUNDS — brand signatures
+   GRADIENTS
    ============================================================ */
-.bg-brand-gradient {
-  background: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-pink) 100%);
+.bg-nexflow-gradient {
+  background: linear-gradient(135deg, #18181B 0%, #3B82F6 100%);
 }
-.bg-brand-gradient-soft {
-  background: linear-gradient(135deg, oklch(0.95 0.03 295) 0%, oklch(0.95 0.03 350) 100%);
+.bg-nexflow-accent-gradient {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
 }
-.bg-sidebar-gradient {
-  background: linear-gradient(180deg, oklch(0.2 0.03 265) 0%, oklch(0.17 0.02 265) 100%);
-}
-.text-brand-gradient {
-  background: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-pink) 100%);
+.text-nexflow-gradient {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 /* ============================================================
-   GLASS EFFECT — for header/overlays
+   GLASS EFFECT
    ============================================================ */
 .glass {
   background: oklch(1 0 0 / 0.7);
@@ -255,11 +300,11 @@
   -webkit-backdrop-filter: blur(12px);
 }
 .dark .glass {
-  background: oklch(0.17 0.02 265 / 0.7);
+  background: oklch(0.16 0.005 260 / 0.7);
 }
 
 /* ============================================================
-   KEYBOARD HINT CHIP
+   KEYBOARD HINT
    ============================================================ */
 .kbd {
   display: inline-flex;
@@ -271,7 +316,7 @@
   font-size: 0.7rem;
   font-weight: 600;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--muted);
   color: var(--muted-foreground);
 }
@@ -283,24 +328,44 @@
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+
+@keyframes fade-in-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
+.animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.54 0.23 295 / 0.4); }
-  50% { box-shadow: 0 0 0 8px oklch(0.54 0.23 295 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
 }
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 
 /* ============================================================
-   FOCUS RING — branded
+   FOCUS RING
    ============================================================ */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--brand-purple);
+  outline: 2px solid var(--nexflow-accent);
   outline-offset: 2px;
+}
+
+/* ============================================================
+   SIDEBAR ACTIVE INDICATOR — white bar on active item
+   ============================================================ */
+.sidebar-active-indicator {
+  position: relative;
+}
+.sidebar-active-indicator::before {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--nexflow-accent);
+  border-radius: 0 3px 3px 0;
 }

@@ -29,13 +29,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "لمسة جمال - نظام نقاط البيع",
-  description: "نظام احترافي لنقاط البيع وإدارة مستحضرات التجميل",
+  title: "NexFlow System — نظام إدارة الأعمال",
+  description: "NexFlow System — نظام احترافي متكامل لنقاط البيع والمخزون والمحاسبة",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "لمسة جمال",
+    title: "NexFlow",
   },
   icons: {
     icon: [
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#7C3AED",
+  themeColor: "#18181B",
   width: "device-width",
   initialScale: 1,
 }
